@@ -258,16 +258,16 @@ def fetch_kosis() -> dict:
     if isinstance(data, dict):
         raise SourceError(f"KOSIS: {data.get('errMsg') or data.get('err') or data}")
     rows = [r for r in data if r.get('C1_NM') == '총지수'] or data
-    points, changed = {}, []
+    points = {}
     for row in rows:
         period = str(row.get('PRD_DE', ''))
         try:
             points[f'{period[:4]}-{period[4:6]}'] = float(row['DT'])
         except (KeyError, ValueError):
             continue
-        if row.get('LST_CHN_DE'):
-            changed.append(str(row['LST_CHN_DE'])[:10])
-    return {'KR': make_entry('KOSIS', 'Consumer price index', 'KRW', points, max(changed) if changed else None)}
+    # LST_CHN_DE is when the table last changed, not when a month was released:
+    # leave the date to the day the new data arrives.
+    return {'KR': make_entry('KOSIS', 'Consumer price index', 'KRW', points, None)}
 
 
 def fetch_oecd_korea() -> dict:
