@@ -1,0 +1,2 @@
+# The app checks cpi.json against manifest.json's sha256: never rewrite its bytes.
+data/* -text

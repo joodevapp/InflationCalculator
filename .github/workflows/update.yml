@@ -1,0 +1,46 @@
+name: Update CPI data
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-cpi
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install requests
+        run: pip install -r requirements.txt
+
+      - name: Build data/cpi.json
+        id: build
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+          KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
+          KOSIS_TBL_ID: ${{ vars.KOSIS_TBL_ID }}
+          KOSIS_OBJ_L1: ${{ vars.KOSIS_OBJ_L1 }}
+          KOSIS_ITM_ID: ${{ vars.KOSIS_ITM_ID }}
+        run: python scripts/build_cpi.py
+
+      - name: Commit and push
+        if: steps.build.outputs.changed == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/
+          git commit -m "data: update CPI (v${{ steps.build.outputs.version }})"
+          git push
